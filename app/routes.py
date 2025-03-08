@@ -4,8 +4,8 @@ from flask import render_template, redirect, url_for, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import User
-
-
+from app.services.audit_service import log_activity
+from app.models import User, AuditLog
 from app.models.system_constant import SystemConstant
 
 
@@ -45,7 +45,8 @@ def init_routes(app):
             # Add role-based access check
             if user.role not in ['admin', 'analyst', 'engineer', 'user']:
                 return jsonify({'error': 'Unauthorized access'}), 403
-                
+            
+            log_activity(current_user_id, 'view_dashboard')
             return render_template('dashboard/main.html', user=user)
         except Exception as e:
             return redirect(url_for('login'))
@@ -115,3 +116,44 @@ def init_routes(app):
             return redirect(url_for('dashboard'))
             
         return render_template('admin/settings/constants.html', active_tab='constants')
+    
+    
+    @app.route('/admin/audit-logs')
+    @jwt_required()
+    def admin_audit_logs():
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        
+        if user.role != 'admin':
+            return redirect(url_for('dashboard'))
+        
+        # Get query parameters
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        search = request.args.get('search', '')
+        
+        # Base query with user join
+        query = AuditLog.query.join(User)
+        
+        # Apply search if provided
+        if search:
+            query = query.filter(
+                db.or_(
+                    User.username.ilike(f'%{search}%'),
+                    AuditLog.action.ilike(f'%{search}%'),
+                    AuditLog.details.ilike(f'%{search}%')
+                )
+            )
+        
+        # Order and paginate
+        logs = query.order_by(AuditLog.timestamp.desc()).paginate(
+            page=page, 
+            per_page=per_page,
+            error_out=False
+        )
+        
+        return render_template(
+            'admin/audit_logs.html',
+            logs=logs,
+            search=search
+        )

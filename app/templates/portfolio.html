@@ -1,0 +1,1247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Azure AI Engineer Portfolio</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+      body {
+        font-family: "Poppins", sans-serif;
+        overflow-x: hidden;
+        background-color: #0f172a;
+        color: #f1f5f9;
+        transition: background-color 0.3s, color 0.3s;
+      }
+
+      body.light-mode {
+        background-color: #ffffff;
+        color: #1f2937;
+      }
+
+      .gradient-bg {
+        background: linear-gradient(135deg, #0ea5e9, #7e22ce);
+      }
+
+      .card {
+        backdrop-filter: blur(16px);
+        background-color: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        transform-style: preserve-3d;
+        transition: transform 0.5s;
+      }
+
+      .card:hover {
+        transform: translateY(-8px) rotateX(5deg) rotateY(5deg);
+      }
+
+      .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+      }
+
+      .photo-item {
+        overflow: hidden;
+        border-radius: 0.5rem;
+        height: 200px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.5s;
+      }
+
+      .photo-item:hover {
+        transform: scale(1.05) translateZ(20px);
+        z-index: 10;
+      }
+
+      .photo-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+      }
+
+      .photo-item:hover img {
+        transform: scale(1.1);
+      }
+
+      .animate-float {
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      .glow {
+        animation: glow 3s ease-in-out infinite;
+      }
+
+      @keyframes glow {
+        0% {
+          filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.6));
+        }
+        50% {
+          filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.9));
+        }
+        100% {
+          filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.6));
+        }
+      }
+
+      #canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+      }
+
+      .skill-tag {
+        background: rgba(14, 165, 233, 0.15);
+        border: 1px solid rgba(14, 165, 233, 0.3);
+        transition: all 0.3s;
+      }
+
+      .skill-tag:hover {
+        background: rgba(14, 165, 233, 0.3);
+        transform: translateY(-3px);
+      }
+
+      .parallax {
+        transition: transform 0.3s ease-out;
+      }
+
+      .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        background-color: rgba(15, 23, 42, 0.8);
+        z-index: 20;
+        transition: background-color 0.3s;
+      }
+
+      .navbar.light-mode {
+        background-color: rgba(255, 255, 255, 0.8);
+      }
+
+      .navbar .nav-link {
+        color: #f1f5f9;
+        transition: color 0.3s;
+      }
+
+      .navbar.light-mode .nav-link {
+        color: #1f2937;
+      }
+
+      .testimonial-carousel {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+      }
+
+      .testimonial-carousel > * {
+        flex-shrink: 0;
+        width: 100%;
+        scroll-snap-align: start;
+      }
+
+      .blog-post {
+        border-bottom: 1px solid #384151;
+        padding: 2rem 0;
+      }
+
+      .blog-post:last-child {
+        border-bottom: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar py-4">
+      <div class="container mx-auto px-4 flex justify-between items-center">
+        <a href="#" class="text-2xl font-bold nav-link">Azure AI Engineer</a>
+        <div class="flex space-x-4">
+          <a href="#projects" class="nav-link">Projects</a>
+          <a href="#contact" class="nav-link">Contact</a>
+          <button id="dark-mode-toggle" class="nav-link">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section
+      class="min-h-screen flex items-center justify-center relative overflow-hidden py-20"
+    >
+      <div class="absolute inset-0 z-0">
+        <div
+          class="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl opacity-10 animate-float"
+        ></div>
+        <div
+          class="absolute bottom-0 left-0 w-96 h-96 bg-purple-500 rounded-full filter blur-3xl opacity-10 animate-float"
+          style="animation-delay: 2s"
+        ></div>
+      </div>
+
+      <div class="container mx-auto px-4 z-10">
+        <div class="flex flex-col lg:flex-row items-center gap-10">
+          <div class="lg:w-1/2 parallax" data-speed="0.1">
+            <h1 class="text-5xl lg:text-7xl font-bold mb-6 glow">
+              <span
+                class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+                >Azure AI</span
+              >
+              <div>Engineer</div>
+            </h1>
+            <p class="text-lg lg:text-xl text-gray-300 mb-8">
+              Microsoft certified Azure developer and architect with expertise
+              in AI, cloud solutions, and full-stack development.
+            </p>
+            <div class="flex flex-wrap gap-3">
+              <button
+                onclick="scrollToSection('projects')"
+                class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full text-white font-medium hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 transition duration-300 transform hover:-translate-y-1"
+              >
+                View Projects
+              </button>
+              <button
+                onclick="scrollToSection('contact')"
+                class="px-6 py-3 bg-transparent border border-gray-300 rounded-full text-white font-medium hover:bg-white/10 transition duration-300 transform hover:-translate-y-1"
+              >
+                Contact Me
+              </button>
+            </div>
+          </div>
+
+          <div class="lg:w-1/2 parallax" data-speed="-0.1">
+            <div class="relative">
+              <div
+                class="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl blur-2xl opacity-20"
+              ></div>
+              <div class="card rounded-xl p-6 relative overflow-hidden">
+                <img
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSfY4Sg1LI6hHh4S0crKjTRRBJt3elPQ591qQ&s"
+                  alt="Profile"
+                  class="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-blue-500 object-cover"
+                />
+                <h2 class="text-2xl font-bold text-center mb-2">
+                  Azure AI Expert
+                </h2>
+                <p class="text-center text-gray-300 mb-4">
+                  Certified Azure Developer & Architect
+                </p>
+                <div class="flex justify-center space-x-4 mb-6">
+                  <a
+                    href="https://www.linkedin.com/in/tapan-barik-7b896a171/"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-linkedin text-xl"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-github text-xl"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-twitter text-xl"></i>
+                  </a>
+                </div>
+                <div class="flex flex-wrap gap-2 justify-center">
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >Python</span
+                  >
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >Azure</span
+                  >
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >AI/ML</span
+                  >
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >React</span
+                  >
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >Node.js</span
+                  >
+                  <span
+                    class="skill-tag px-3 py-1 rounded-full text-xs font-medium text-blue-400"
+                    >.NET</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="py-20 relative">
+      <div class="absolute inset-0 z-0">
+        <div
+          class="absolute top-10 left-10 w-72 h-72 bg-indigo-500 rounded-full filter blur-3xl opacity-5"
+        ></div>
+        <div
+          class="absolute bottom-10 right-10 w-72 h-72 bg-blue-500 rounded-full filter blur-3xl opacity-5"
+        ></div>
+      </div>
+
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Technical Skills</span
+          >
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Cloud & AI Card -->
+          <div class="card rounded-xl p-6 hover-3d">
+            <div class="flex items-center mb-4">
+              <div
+                class="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center mr-4"
+              >
+                <i class="fas fa-cloud text-blue-400 text-xl"></i>
+              </div>
+              <h3 class="text-xl font-semibold">Cloud & AI</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                <span>Azure Certified Developer</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                <span>Azure Certified Architect</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                <span>AI/ML Implementation</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
+                <span>Cloud Infrastructure</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Backend Development Card -->
+          <div class="card rounded-xl p-6 hover-3d">
+            <div class="flex items-center mb-4">
+              <div
+                class="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center mr-4"
+              >
+                <i class="fas fa-server text-purple-400 text-xl"></i>
+              </div>
+              <h3 class="text-xl font-semibold">Backend</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+                <span>Python (FastAPI, Flask)</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+                <span>Node.js</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+                <span>C# .NET Web API</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
+                <span>SQL & PostgreSQL</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Frontend Development Card -->
+          <div class="card rounded-xl p-6 hover-3d">
+            <div class="flex items-center mb-4">
+              <div
+                class="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center mr-4"
+              >
+                <i class="fas fa-laptop-code text-indigo-400 text-xl"></i>
+              </div>
+              <h3 class="text-xl font-semibold">Frontend</h3>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                <span>Angular</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                <span>React.js</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                <span>HTML5 & CSS3</span>
+              </div>
+              <div class="flex items-center">
+                <span class="w-3 h-3 rounded-full bg-indigo-500 mr-2"></span>
+                <span>Tailwind CSS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Experience Section -->
+    <section class="py-20 relative">
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Experience</span
+          >
+        </h2>
+
+        <div class="relative">
+          <!-- Timeline Line -->
+          <div
+            class="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-blue-500 to-purple-600 z-0"
+          ></div>
+
+          <!-- Experience Items -->
+          <div class="relative z-10 space-y-16">
+            <!-- Happiest Minds -->
+            <div class="flex flex-col md:flex-row items-center">
+              <div
+                class="md:w-1/2 pr-8 md:text-right parallax"
+                data-speed="0.05"
+              >
+                <h3 class="text-2xl font-bold text-blue-400 mb-2">
+                  Happiest Minds
+                </h3>
+                <p class="text-gray-400">2020 - Present</p>
+                <div class="card mt-4 p-4 inline-block">
+                  <p class="text-sm">
+                    Working on cutting-edge Azure AI solutions, developing cloud
+                    infrastructure, and implementing ML models for enterprise
+                    clients.
+                  </p>
+                </div>
+              </div>
+              <div
+                class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center glow"
+              >
+                <i class="fas fa-briefcase text-white"></i>
+              </div>
+              <div class="md:w-1/2 pl-8 md:text-left mt-4 md:mt-0"></div>
+            </div>
+
+            <!-- IGIT Sarang -->
+            <div class="flex flex-col md:flex-row items-center">
+              <div class="md:w-1/2 pr-8 md:text-right"></div>
+              <div
+                class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center glow"
+              >
+                <i class="fas fa-graduation-cap text-white"></i>
+              </div>
+              <div
+                class="md:w-1/2 pl-8 md:text-left mt-4 md:mt-0 parallax"
+                data-speed="0.05"
+              >
+                <h3 class="text-2xl font-bold text-purple-400 mb-2">
+                  IGIT Sarang
+                </h3>
+                <p class="text-gray-400">2016 - 2020</p>
+                <div class="card mt-4 p-4 inline-block">
+                  <p class="text-sm">
+                    Graduated with a degree in Computer Science, focusing on
+                    cloud technologies and software development.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section id="projects" class="py-20 relative">
+      <div class="absolute inset-0 z-0">
+        <div
+          class="absolute top-1/3 right-1/4 w-80 h-80 bg-blue-500 rounded-full filter blur-3xl opacity-5"
+        ></div>
+        <div
+          class="absolute bottom-1/3 left-1/4 w-80 h-80 bg-purple-500 rounded-full filter blur-3xl opacity-5"
+        ></div>
+      </div>
+
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Featured Projects</span
+          >
+        </h2>
+
+        <!-- Project Filter -->
+        <div class="flex justify-center mb-8">
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-full mx-2 filter-btn"
+            data-filter="all"
+          >
+            All
+          </button>
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-full mx-2 filter-btn"
+            data-filter="azure"
+          >
+            Azure
+          </button>
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-full mx-2 filter-btn"
+            data-filter="react"
+          >
+            React
+          </button>
+          <button
+            class="px-4 py-2 bg-blue-500 text-white rounded-full mx-2 filter-btn"
+            data-filter="python"
+          >
+            Python
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Project Card 1 -->
+          <div
+            class="card rounded-xl overflow-hidden hover-3d project-card"
+            data-tags="azure react .net"
+          >
+            <div class="h-48 overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1514820402329-de527fdd2e6d?q=80&w=2073&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt="Project 1"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">
+                AI-Powered Analytics Platform
+              </h3>
+              <p class="text-gray-300 text-sm mb-4">
+                Built an end-to-end analytics platform with Azure AI services,
+                React frontend, and .NET backend.
+              </p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Azure</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >React</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >.NET</span
+                >
+              </div>
+              <div class="flex justify-between items-center">
+                <a
+                  href="#"
+                  class="inline-block text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View Details <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+                <div class="flex space-x-2">
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-facebook-f"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-twitter"></i>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/tapan-barik-7b896a171/"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-linkedin-in"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project Card 2 -->
+          <div
+            class="card rounded-xl overflow-hidden hover-3d project-card"
+            data-tags="azure python kubernetes"
+          >
+            <div class="h-48 overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1509966756634-9c23dd6e6815?q=80&w=1976&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt="Project 2"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Cloud-Native Microservices</h3>
+              <p class="text-gray-300 text-sm mb-4">
+                Designed and implemented a microservices architecture using
+                Azure Kubernetes Service and Python.
+              </p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Azure</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Python</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Kubernetes</span
+                >
+              </div>
+              <div class="flex justify-between items-center">
+                <a
+                  href="#"
+                  class="inline-block text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View Details <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+                <div class="flex space-x-2">
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-facebook-f"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-twitter"></i>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/tapan-barik-7b896a171/"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-linkedin-in"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project Card 3 -->
+          <div
+            class="card rounded-xl overflow-hidden hover-3d project-card"
+            data-tags="azure sql powerbi"
+          >
+            <div class="h-48 overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-1608742213509-815b97c30b36?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+                alt="Project 3"
+                class="w-full h-full object-cover"
+              />
+            </div>
+            <div class="p-6">
+              <h3 class="text-xl font-bold mb-2">Enterprise Data Pipeline</h3>
+              <p class="text-gray-300 text-sm mb-4">
+                Built a scalable data pipeline with Azure Data Factory, SQL
+                databases, and Power BI visualizations.
+              </p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Azure</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >SQL</span
+                >
+                <span
+                  class="skill-tag px-2 py-1 rounded-full text-xs font-medium text-blue-400"
+                  >Power BI</span
+                >
+              </div>
+              <div class="flex justify-between items-center">
+                <a
+                  href="#"
+                  class="inline-block text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View Details <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+                <div class="flex space-x-2">
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-facebook-f"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-twitter"></i>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/tapan-barik-7b896a171/"
+                    class="text-gray-300 hover:text-blue-400 transition-colors"
+                  >
+                    <i class="fab fa-linkedin-in"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="py-20 relative">
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Testimonials</span
+          >
+        </h2>
+
+        <div class="testimonial-carousel">
+          <div class="card rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              "Working with this Azure AI Engineer was a game-changer for our
+              project. The expertise and dedication brought to the table were
+              exceptional."
+            </p>
+            <h3 class="text-xl font-bold">John Doe, CEO of TechCorp</h3>
+          </div>
+          <div class="card rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              "The AI solutions implemented have significantly improved our
+              operational efficiency. Highly recommend!"
+            </p>
+            <h3 class="text-xl font-bold">Jane Smith, CTO of Innovatech</h3>
+          </div>
+          <div class="card rounded-xl p-6">
+            <p class="text-gray-300 mb-4">
+              "The attention to detail and the ability to deliver complex AI
+              projects on time is truly commendable."
+            </p>
+            <h3 class="text-xl font-bold">Alice Johnson, Project Manager</h3>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Blog Section -->
+    <section class="py-20 relative">
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Blog</span
+          >
+        </h2>
+
+        <div class="space-y-8">
+          <div class="blog-post">
+            <h3 class="text-2xl font-bold mb-2">Blog Post 1</h3>
+            <p class="text-gray-300 mb-4">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer
+              nec odio. Praesent libero. Sed cursus ante dapibus diam.
+            </p>
+            <a
+              href="#"
+              class="inline-block text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Read More <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+          <div class="blog-post">
+            <h3 class="text-2xl font-bold mb-2">Blog Post 2</h3>
+            <p class="text-gray-300 mb-4">
+              Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis
+              sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper
+              porta.
+            </p>
+            <a
+              href="#"
+              class="inline-block text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Read More <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Photo Gallery Section -->
+    <section class="py-20 relative">
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Photo Gallery</span
+          >
+        </h2>
+
+        <div class="photo-grid">
+          <div class="photo-item">
+            <img
+              src="https://avatars.githubusercontent.com/u/55124761?v=4"
+              alt="Photo 1"
+            />
+          </div>
+          <div class="photo-item">
+            <img
+              src="https://images.unsplash.com/photo-1741367637710-ed371718bd1c?q=80&w=1973&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Photo 2"
+            />
+          </div>
+          <div class="photo-item">
+            <img
+              src="https://plus.unsplash.com/premium_photo-1678566111481-8e275550b700?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Photo 3"
+            />
+          </div>
+          <div class="photo-item">
+            <img
+              src="https://plus.unsplash.com/premium_photo-1683121716061-3faddf4dc504?q=80&w=1932&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Photo 4"
+            />
+          </div>
+          <div class="photo-item">
+            <img
+              src="https://images.unsplash.com/photo-1533254012848-644c18f39289?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Photo 5"
+            />
+          </div>
+          <div class="photo-item">
+            <img
+              src="https://images.unsplash.com/photo-1599676937922-633deaad50de?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+              alt="Photo 6"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 relative">
+      <div class="container mx-auto px-4 z-10 relative">
+        <h2 class="text-4xl font-bold mb-16 text-center">
+          <span
+            class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >Get in Touch</span
+          >
+        </h2>
+
+        <div class="max-w-2xl mx-auto">
+          <div class="card rounded-xl p-8">
+            <form id="contact-form" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2"
+                    >Name</label
+                  >
+                  <input
+                    type="text"
+                    class="w-full bg-slate-800/50 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2"
+                    >Email</label
+                  >
+                  <input
+                    type="email"
+                    class="w-full bg-slate-800/50 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Subject</label
+                >
+                <input
+                  type="text"
+                  class="w-full bg-slate-800/50 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  required
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Message</label
+                >
+                <textarea
+                  rows="5"
+                  class="w-full bg-slate-800/50 border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  required
+                ></textarea>
+              </div>
+              <button
+                type="submit"
+                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg py-3 text-white font-medium hover:from-blue-700 hover:to-indigo-700 transition-colors"
+              >
+                Send Message
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 border-t border-gray-800">
+      <div class="container mx-auto px-4">
+        <div class="flex flex-col md:flex-row justify-between items-center">
+          <div class="mb-4 md:mb-0">
+            <h2
+              class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-600"
+            >
+              Azure AI Engineer
+            </h2>
+          </div>
+          <div class="flex space-x-6">
+            <a
+              href="https://www.linkedin.com/in/tapan-barik-7b896a171/"
+              class="text-gray-400 hover:text-blue-400 transition-colors"
+            >
+              <i class="fab fa-linkedin text-xl"></i>
+            </a>
+            <a
+              href="#"
+              class="text-gray-400 hover:text-blue-400 transition-colors"
+            >
+              <i class="fab fa-github text-xl"></i>
+            </a>
+            <a
+              href="#"
+              class="text-gray-400 hover:text-blue-400 transition-colors"
+            >
+              <i class="fab fa-twitter text-xl"></i>
+            </a>
+            <a
+              href="#"
+              class="text-gray-400 hover:text-blue-400 transition-colors"
+            >
+              <i class="fas fa-envelope text-xl"></i>
+            </a>
+          </div>
+        </div>
+        <div class="mt-6 text-center text-gray-500 text-sm">
+          &copy; 2025 Azure AI Engineer. All rights reserved.
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // Smooth scroll function
+      function scrollToSection(sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }
+      // Initialize Three.js background
+      const initThreeBackground = () => {
+        const container = document.getElementById("canvas-container");
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        const renderer = new THREE.WebGLRenderer({ alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Create particles
+        const particlesGeometry = new THREE.BufferGeometry();
+        const particlesCount = 1000;
+        const posArray = new Float32Array(particlesCount * 3);
+
+        for (let i = 0; i < particlesCount * 3; i++) {
+          posArray[i] = (Math.random() - 0.5) * 10;
+        }
+
+        particlesGeometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(posArray, 3)
+        );
+
+        // Material
+        const particlesMaterial = new THREE.PointsMaterial({
+          size: 0.02,
+          color: 0x0ea5e9,
+          transparent: true,
+          opacity: 0.5,
+        });
+
+        // Mesh
+        const particlesMesh = new THREE.Points(
+          particlesGeometry,
+          particlesMaterial
+        );
+        scene.add(particlesMesh);
+
+        camera.position.z = 5;
+
+        // Animation
+        const animate = () => {
+          requestAnimationFrame(animate);
+          particlesMesh.rotation.x += 0.0001;
+          particlesMesh.rotation.y += 0.0002;
+          renderer.render(scene, camera);
+        };
+
+        animate();
+
+        // Handle window resize
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+      };
+
+      // Initialize 3D card effect
+      const init3DCards = () => {
+        const cards = document.querySelectorAll(".hover-3d");
+
+        cards.forEach((card) => {
+          card.addEventListener("mousemove", (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const xPercent = x / rect.width - 0.5;
+            const yPercent = y / rect.height - 0.5;
+
+            card.style.transform = `rotateY(${xPercent * 10}deg) rotateX(${
+              yPercent * -10
+            }deg)`;
+          });
+
+          card.addEventListener("mouseleave", () => {
+            card.style.transform = "rotateY(0) rotateX(0)";
+          });
+        });
+      };
+
+      // Initialize parallax effect
+      const initParallax = () => {
+        const parallaxElements = document.querySelectorAll("[data-speed]");
+
+        window.addEventListener("scroll", () => {
+          parallaxElements.forEach((element) => {
+            const speed = element.getAttribute("data-speed");
+            const yPos = -(window.scrollY * speed);
+            element.style.transform = `translateY(${yPos}px)`;
+          });
+        });
+      };
+
+      // Initialize project filter
+      const initProjectFilter = () => {
+        const filterButtons = document.querySelectorAll(".filter-btn");
+        const projectCards = document.querySelectorAll(".project-card");
+
+        filterButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const filter = button.getAttribute("data-filter");
+
+            projectCards.forEach((card) => {
+              const tags = card.getAttribute("data-tags").split(" ");
+              if (filter === "all" || tags.includes(filter)) {
+                card.style.display = "block";
+              } else {
+                card.style.display = "none";
+              }
+            });
+          });
+        });
+      };
+
+      // Initialize dark mode toggle
+      const initDarkModeToggle = () => {
+        const toggleButton = document.getElementById("dark-mode-toggle");
+        const navbar = document.querySelector(".navbar");
+
+        toggleButton.addEventListener("click", () => {
+          document.body.classList.toggle("light-mode");
+          navbar.classList.toggle("light-mode");
+        });
+      };
+
+      // Initialize contact form validation
+      const initContactFormValidation = () => {
+        const form = document.getElementById("contact-form");
+
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          alert("Form submitted successfully!");
+        });
+      };
+
+      // Initialize all effects
+      document.addEventListener("DOMContentLoaded", () => {
+        initThreeBackground();
+        init3DCards();
+        initParallax();
+        initProjectFilter();
+        initDarkModeToggle();
+        initContactFormValidation();
+      });
+    </script>
+
+    <script type="module">
+      import * as THREE from "https://unpkg.com/three@0.132.2/build/three.module.js";
+      import { GLTFLoader } from "https://unpkg.com/three@0.132.2/examples/jsm/loaders/GLTFLoader.js";
+      import { OrbitControls } from "https://unpkg.com/three@0.132.2/examples/jsm/controls/OrbitControls.js";
+
+      // Initialize the viewer
+      const container = document.getElementById("model-viewer");
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        container.clientWidth / container.clientHeight,
+        0.1,
+        1000
+      );
+
+      // Set up renderer
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setClearColor(0x0f172a); // Dark background color
+      container.appendChild(renderer.domElement);
+
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(0, 1, 0);
+      scene.add(directionalLight);
+
+      // Set up camera position
+      camera.position.z = 5;
+
+      // Add orbit controls
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+
+      // Create a sample geometry (cube) for demonstration
+      const geometry = new THREE.BoxGeometry();
+      const material = new THREE.MeshPhongMaterial({
+        color: 0x0ea5e9,
+        specular: 0x050505,
+        shininess: 100,
+      });
+      const cube = new THREE.Mesh(geometry, material);
+      scene.add(cube);
+
+      // Or load a GLTF model
+      const loader = new GLTFLoader();
+      // Example model URL - replace with your model path
+      const modelUrl =
+        "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF/Duck.gltf";
+
+      loader.load(
+        modelUrl,
+        function (gltf) {
+          scene.add(gltf.scene);
+          // Center and scale the model
+          const box = new THREE.Box3().setFromObject(gltf.scene);
+          const center = box.getCenter(new THREE.Vector3());
+          const size = box.getSize(new THREE.Vector3());
+
+          gltf.scene.position.x += gltf.scene.position.x - center.x;
+          gltf.scene.position.y += gltf.scene.position.y - center.y;
+          gltf.scene.position.z += gltf.scene.position.z - center.z;
+
+          const maxDim = Math.max(size.x, size.y, size.z);
+          const scale = 2 / maxDim;
+          gltf.scene.scale.multiplyScalar(scale);
+        },
+        undefined,
+        function (error) {
+          console.error("Error loading model:", error);
+        }
+      );
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Rotate cube
+        cube.rotation.x += 0.01;
+        cube.rotation.y += 0.01;
+
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      // Handle window resize
+      window.addEventListener("resize", onWindowResize, false);
+
+      function onWindowResize() {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      }
+    </script>
+  </body>
+</html>

@@ -7,4 +7,6 @@ class AuditLog(db.Model):
     action = db.Column(db.String(100), nullable=False)
     details = db.Column(db.Text, nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(50), nullable=True)
+    
+    # Add relationship to User model
+    user = db.relationship('User', backref='audit_logs')
