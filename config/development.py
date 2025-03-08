@@ -24,3 +24,6 @@ class DevelopmentConfig(Config):
     
     # Show SQLAlchemy queries
     SQLALCHEMY_ECHO = True
+    
+    
+    AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')

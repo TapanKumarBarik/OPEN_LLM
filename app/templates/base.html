@@ -6,6 +6,59 @@
     <title id="siteTitle">{{ site_name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+      .upload-progress-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .upload-progress {
+        background: #1a1a1a;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        text-align: center;
+        max-width: 300px;
+        width: 100%;
+      }
+
+      .progress-ring {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 1rem;
+      }
+
+      .progress-ring-circle {
+        transform-origin: center;
+        transform: rotate(-90deg);
+      }
+
+      .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #10b981;
+      }
+
+      .upload-status {
+        color: #9ca3af;
+        margin-top: 1rem;
+        font-size: 0.875rem;
+      }
+    </style>
   </head>
   <body class="bg-gray-50">
     <nav class="bg-gray-800">
@@ -36,6 +89,14 @@
                   class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Dashboard
+                </a>
+
+                <!-- Add Documents Link -->
+                <a
+                  href="{{ url_for('documents') }}"
+                  class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Documents
                 </a>
 
                 <!-- Admin Links -->

@@ -80,3 +80,7 @@ click==8.1.7
 tqdm==4.66.1
 loguru==0.7.0
 validators==0.22.0
+
+
+#Azure
+azure-storage-blob

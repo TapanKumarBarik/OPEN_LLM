@@ -7,9 +7,13 @@ from app.models import User
 from app.services.audit_service import log_activity
 from app.models import User, AuditLog
 from app.models.system_constant import SystemConstant
+from werkzeug.utils import secure_filename
+from azure.storage.blob import BlobServiceClient
+from flask_login import login_required, current_user
+import os
+from datetime import datetime
 
-
-
+from app.models.document import Document
 
 def init_routes(app):
     @app.route('/')
@@ -157,3 +161,98 @@ def init_routes(app):
             logs=logs,
             search=search
         )
+        
+        
+    @app.route('/documents')
+    @jwt_required()  
+    def documents():
+        return render_template('documents/index.html')
+
+    @app.route('/api/documents', methods=['POST'])
+    @jwt_required()
+    def upload_document():
+        current_user_id = get_jwt_identity()
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+            
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+            
+        filename = secure_filename(file.filename)
+
+        # Check if user has already uploaded a file with the same name
+        existing_document = Document.query.filter_by(
+            user_id=current_user_id,
+            filename=filename
+        ).first()
+        
+        if existing_document:
+            return jsonify({
+                'error': 'A document with this name already exists. Please rename the file or delete the existing one.'
+            }), 400
+        
+        # Continue with upload if file doesn't exist
+        file_extension = os.path.splitext(filename)[1].lower()
+        unique_filename = f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        
+        # Upload to Azure Blob Storage
+        container_name = f"user-{current_user_id}"
+        blob_service_client = BlobServiceClient.from_connection_string(app.config['AZURE_STORAGE_CONNECTION_STRING'])
+        
+        try:
+            container_client = blob_service_client.get_container_client(container_name)
+            container_client.create_container()
+        except:
+            container_client = blob_service_client.get_container_client(container_name)
+        
+        blob_client = container_client.get_blob_client(unique_filename)
+        blob_client.upload_blob(file)
+        
+        # Save document metadata to database
+        document = Document(
+            filename=filename,
+            blob_path=unique_filename,
+            user_id=current_user_id,
+            status='uploaded',
+            created_at=datetime.utcnow()
+        )
+        db.session.add(document)
+        db.session.commit()
+        
+        return jsonify({'message': 'Document uploaded successfully'})
+
+    @app.route('/api/documents', methods=['GET'])
+    @jwt_required()
+    def get_documents():
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)  # Get the user from database
+        page = request.args.get('page', 1, type=int)
+        per_page = 10
+        search = request.args.get('search', '')
+        
+        query = Document.query
+        
+        # Check role using the user object from database
+        if user.role != 'admin':
+            query = query.filter_by(user_id=current_user_id)
+            
+        if search:
+            query = query.filter(Document.filename.ilike(f'%{search}%'))
+            
+        pagination = query.order_by(Document.created_at.desc()).paginate(
+            page=page, per_page=per_page
+        )
+        
+        return jsonify({
+            'documents': [{
+                'id': doc.id,
+                'filename': doc.filename,
+                'status': doc.status,
+                'created_at': doc.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'user_id': doc.user_id
+            } for doc in pagination.items],
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'current_page': pagination.page
+        })

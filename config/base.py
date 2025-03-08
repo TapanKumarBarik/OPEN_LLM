@@ -15,3 +15,6 @@ class Config:
     # AI Model settings
     AI_MODEL_PATH = 'models'
     EMBEDDING_MODEL = 'all-MiniLM-L6-v2'
+    
+    # Azure Storage
+    AZURE_STORAGE_CONNECTION_STRING = 'your-connection-string'
