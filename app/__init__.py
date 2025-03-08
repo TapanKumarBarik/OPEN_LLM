@@ -47,7 +47,9 @@ def create_app(config_class):
     login_manager.init_app(app)
 
     from app.api.auth import auth_bp
+    from app.api.admin import admin_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(admin_bp, url_prefix='/api/admin')
     
     from app.routes import init_routes
     init_routes(app)

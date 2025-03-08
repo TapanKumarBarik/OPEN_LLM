@@ -1,0 +1,147 @@
+{% extends "admin/settings/base.html" %} {% block settings_content %}
+<div class="bg-white shadow rounded-lg">
+  <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+    <h3 class="text-lg font-medium leading-6 text-gray-900">
+      System Constants
+    </h3>
+  </div>
+
+  <!-- Category tabs -->
+  <div class="px-4 py-3 bg-gray-50">
+    <div class="flex space-x-4" id="categoryTabs">
+      <!-- Categories will be populated here -->
+    </div>
+  </div>
+
+  <!-- Constants table -->
+  <div class="p-4">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead>
+        <tr>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Key
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Value
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Description
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody id="constantsTable" class="bg-white divide-y divide-gray-200">
+        <!-- Constants will be populated here -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  let constants = [];
+  let currentCategory = "USER_ROLES"; // Default category
+
+  async function loadConstants() {
+    try {
+      const response = await fetch("/api/admin/settings/constants");
+      constants = await response.json();
+
+      // Populate categories
+      const categories = [...new Set(constants.map((c) => c.category))];
+      document.getElementById("categoryTabs").innerHTML = categories
+        .map(
+          (cat) => `
+            <button 
+                onclick="switchCategory('${cat}')"
+                class="px-3 py-2 text-sm font-medium rounded-md ${
+                  currentCategory === cat
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-500 hover:text-gray-700"
+                }">
+                ${cat}
+            </button>
+        `
+        )
+        .join("");
+
+      renderConstants();
+    } catch (error) {
+      console.error("Error loading constants:", error);
+    }
+  }
+
+  function renderConstants() {
+    const filteredConstants = constants.filter(
+      (c) => c.category === currentCategory
+    );
+    document.getElementById("constantsTable").innerHTML = filteredConstants
+      .map(
+        (c) => `
+        <tr>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${
+              c.key
+            }</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${
+                  c.is_editable
+                    ? `<input type="text" value="${c.value}" 
+                            onchange="updateConstant('${c.id}', this.value)"
+                            class="border rounded px-2 py-1">`
+                    : c.value
+                }
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-500">${c.description}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                ${
+                  c.is_editable
+                    ? `<button onclick="deleteConstant('${c.id}')"
+                             class="text-red-600 hover:text-red-900">Delete</button>`
+                    : "System Constant"
+                }
+            </td>
+        </tr>
+    `
+      )
+      .join("");
+  }
+
+  function switchCategory(category) {
+    currentCategory = category;
+    renderConstants();
+  }
+
+  async function updateConstant(id, value) {
+    try {
+      const response = await fetch(`/api/admin/settings/constants/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: localStorage.getItem("access_token"),
+        },
+        body: JSON.stringify({ value }),
+      });
+
+      if (response.ok) {
+        const updatedConstant = await response.json();
+        constants = constants.map((c) => (c.id === id ? updatedConstant : c));
+        renderConstants();
+      }
+    } catch (error) {
+      console.error("Error updating constant:", error);
+    }
+  }
+
+  // Initialize
+  document.addEventListener("DOMContentLoaded", loadConstants);
+</script>
+{% endblock %}

@@ -5,12 +5,33 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from app.models import User
 
+
+from app.models.system_constant import SystemConstant
+
+
+
+
 def init_routes(app):
     @app.route('/')
     def home():
         return render_template('index.html')
-
     
+    
+    @app.context_processor
+    def inject_site_settings():
+        try:
+            site_name = SystemConstant.query.filter_by(
+                category='SITE_SETTINGS', 
+                key='SITE_NAME'
+            ).first().value
+            site_footer = SystemConstant.query.filter_by(
+                category='SITE_SETTINGS', 
+                key='SITE_FOOTER'
+            ).first().value
+            return {'site_name': site_name, 'site_footer': site_footer}
+        except:
+            return {'site_name': 'Default Site Name', 'site_footer': 'Default Footer'}
+        
     @app.route('/dashboard')
     @jwt_required()
     def dashboard():
@@ -69,3 +90,28 @@ def init_routes(app):
             return redirect(url_for('dashboard'))
             
         return render_template('admin/users.html')
+    
+    
+    @app.route('/admin/settings')
+    @jwt_required()
+    def admin_settings_site():
+        """Admin settings page"""
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        
+        if user.role != 'admin':
+            return redirect(url_for('dashboard'))
+            
+        return render_template('admin/settings/site.html', active_tab='site')
+    
+    @app.route('/admin/settings/constants')
+    @jwt_required()
+    def admin_settings_constants():
+        """Admin constants page"""
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        
+        if user.role != 'admin':
+            return redirect(url_for('dashboard'))
+            
+        return render_template('admin/settings/constants.html', active_tab='constants')
