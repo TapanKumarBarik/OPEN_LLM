@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Open LLM Business Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-gray-800">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo/Brand -->
+          <div class="flex-shrink-0">
+            <a
+              href="{{ url_for('home') }}"
+              class="text-white font-bold text-xl"
+            >
+              Open LLM BI
+            </a>
+          </div>
+
+          <!-- Navigation Links -->
+          <div class="hidden md:block">
+            <div class="ml-10 flex items-baseline space-x-4">
+              <a
+                href="{{ url_for('home') }}"
+                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Home
+              </a>
+              {% if current_user.is_authenticated %}
+              <a
+                href="{{ url_for('dashboard') }}"
+                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Dashboard
+              </a>
+              {% if current_user.role == 'admin' %}
+              <a
+                href="#"
+                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Admin
+              </a>
+              {% endif %} {% endif %}
+            </div>
+          </div>
+
+          <!-- Right side menu -->
+          <div class="hidden md:block">
+            <div class="ml-4 flex items-center md:ml-6">
+              {% if current_user.is_authenticated %}
+              <!-- Profile dropdown -->
+              <div class="ml-3 relative">
+                <div>
+                  <button
+                    type="button"
+                    class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    {{ current_user.username }}
+                  </button>
+                </div>
+              </div>
+              <!-- Logout button -->
+              <a
+                href="#"
+                onclick="logout()"
+                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Logout
+              </a>
+              {% else %}
+              <a
+                href="{{ url_for('login') }}"
+                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+              >
+                Login
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %} {% for category, message in messages %}
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+      <div
+        class="rounded-md p-4 {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}"
+      >
+        {{ message }}
+      </div>
+    </div>
+    {% endfor %} {% endif %} {% endwith %}
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800">
+      <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <p class="text-center text-gray-400 text-sm">
+          &copy; 2024 Open LLM Business Intelligence. All rights reserved.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      function addJWTtoFetch() {
+        const originalFetch = window.fetch;
+        window.fetch = function () {
+          let [resource, config] = arguments;
+          config = config || {};
+          config.headers = config.headers || {};
+
+          const token = localStorage.getItem("access_token");
+          if (token) {
+            config.headers.Authorization = token; // Token already includes 'Bearer'
+          }
+
+          return originalFetch(resource, config);
+        };
+      }
+
+      // Initialize JWT interceptor
+      addJWTtoFetch();
+
+      // Redirect to login if token is missing on protected routes
+      function checkAuth() {
+        const token = localStorage.getItem("access_token");
+        const protectedRoutes = ["/dashboard"];
+
+        if (!token && protectedRoutes.includes(window.location.pathname)) {
+          window.location.href = "/login";
+        }
+      }
+
+      // Check auth on page load
+      document.addEventListener("DOMContentLoaded", checkAuth);
+      document.addEventListener("DOMContentLoaded", addJWTtoFetch);
+
+      function logout() {
+        localStorage.removeItem("access_token");
+        window.location.href = "/";
+      }
+    </script>
+    <!-- Additional Scripts -->
+    {% block scripts %}{% endblock %}
+  </body>
+</html>
