@@ -7,11 +7,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
   <body class="bg-gray-50">
-    <!-- Navigation -->
     <nav class="bg-gray-800">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
-          <!-- Logo/Brand -->
+          <!-- Logo -->
           <div class="flex-shrink-0">
             <a
               href="{{ url_for('home') }}"
@@ -20,7 +19,6 @@
               Open LLM BI
             </a>
           </div>
-
           <!-- Navigation Links -->
           <div class="hidden md:block">
             <div class="ml-10 flex items-baseline space-x-4">
@@ -30,72 +28,51 @@
               >
                 Home
               </a>
-              {% if current_user.is_authenticated %}
-              <a
-                href="{{ url_for('dashboard') }}"
-                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Dashboard
-              </a>
-              {% if current_user.role == 'admin' %}
-              <a
-                href="#"
-                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Admin
-              </a>
-              {% endif %} {% endif %}
+              <div id="authenticatedLinks" style="display: none">
+                <a
+                  href="{{ url_for('dashboard') }}"
+                  class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Dashboard
+                </a>
+              </div>
             </div>
           </div>
 
           <!-- Right side menu -->
           <div class="hidden md:block">
             <div class="ml-4 flex items-center md:ml-6">
-              {% if current_user.is_authenticated %}
-              <!-- Profile dropdown -->
-              <div class="ml-3 relative">
-                <div>
-                  <button
-                    type="button"
-                    class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    {{ current_user.username }}
-                  </button>
-                </div>
+              <!-- Unauthenticated Menu -->
+              <div id="unauthenticatedMenu">
+                <a
+                  href="{{ url_for('login') }}"
+                  class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Login
+                </a>
               </div>
-              <!-- Logout button -->
-              <a
-                href="#"
-                onclick="logout()"
-                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Logout
-              </a>
-              {% else %}
-              <a
-                href="{{ url_for('login') }}"
-                class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Login
-              </a>
-              {% endif %}
+
+              <!-- Authenticated Menu -->
+              <div id="authenticatedMenu" style="display: none">
+                <a
+                  href="{{ url_for('profile') }}"
+                  class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Profile
+                </a>
+                <a
+                  href="#"
+                  onclick="logout()"
+                  class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium ml-4"
+                >
+                  Logout
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </nav>
-
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %} {% if
-    messages %} {% for category, message in messages %}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-      <div
-        class="rounded-md p-4 {% if category == 'error' %}bg-red-100 text-red-700{% else %}bg-green-100 text-green-700{% endif %}"
-      >
-        {{ message }}
-      </div>
-    </div>
-    {% endfor %} {% endif %} {% endwith %}
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -112,6 +89,26 @@
     </footer>
 
     <script>
+      function updateNavigation() {
+        const token = localStorage.getItem("access_token");
+        const authenticatedMenu = document.getElementById("authenticatedMenu");
+        const unauthenticatedMenu = document.getElementById(
+          "unauthenticatedMenu"
+        );
+        const authenticatedLinks =
+          document.getElementById("authenticatedLinks");
+
+        if (token) {
+          authenticatedMenu.style.display = "block";
+          unauthenticatedMenu.style.display = "none";
+          authenticatedLinks.style.display = "block";
+        } else {
+          authenticatedMenu.style.display = "none";
+          unauthenticatedMenu.style.display = "block";
+          authenticatedLinks.style.display = "none";
+        }
+      }
+
       function addJWTtoFetch() {
         const originalFetch = window.fetch;
         window.fetch = function () {
@@ -121,36 +118,24 @@
 
           const token = localStorage.getItem("access_token");
           if (token) {
-            config.headers.Authorization = token; // Token already includes 'Bearer'
+            config.headers.Authorization = token;
           }
 
           return originalFetch(resource, config);
         };
       }
 
-      // Initialize JWT interceptor
-      addJWTtoFetch();
-
-      // Redirect to login if token is missing on protected routes
-      function checkAuth() {
-        const token = localStorage.getItem("access_token");
-        const protectedRoutes = ["/dashboard"];
-
-        if (!token && protectedRoutes.includes(window.location.pathname)) {
-          window.location.href = "/login";
-        }
-      }
-
-      // Check auth on page load
-      document.addEventListener("DOMContentLoaded", checkAuth);
-      document.addEventListener("DOMContentLoaded", addJWTtoFetch);
-
       function logout() {
         localStorage.removeItem("access_token");
-        window.location.href = "/";
+        updateNavigation();
+        window.location.href = "/login";
       }
+
+      // Initialize on page load
+      document.addEventListener("DOMContentLoaded", () => {
+        updateNavigation();
+        addJWTtoFetch();
+      });
     </script>
-    <!-- Additional Scripts -->
-    {% block scripts %}{% endblock %}
   </body>
 </html>
