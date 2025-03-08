@@ -57,3 +57,15 @@ def init_routes(app):
     def internal_error(error):
         db.session.rollback()
         return render_template('errors/500.html'), 500
+    
+    @app.route('/admin/users')
+    @jwt_required()
+    def admin_users():
+        """Admin user management page"""
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        
+        if user.role != 'admin':
+            return redirect(url_for('dashboard'))
+            
+        return render_template('admin/users.html')

@@ -19,7 +19,7 @@
               Open LLM BI
             </a>
           </div>
-          <!-- Navigation Links -->
+          <!-- Inside the navigation links div -->
           <div class="hidden md:block">
             <div class="ml-10 flex items-baseline space-x-4">
               <a
@@ -28,6 +28,7 @@
               >
                 Home
               </a>
+
               <div id="authenticatedLinks" style="display: none">
                 <a
                   href="{{ url_for('dashboard') }}"
@@ -35,6 +36,16 @@
                 >
                   Dashboard
                 </a>
+
+                <!-- Admin Links -->
+                <div id="adminLinks" style="display: none">
+                  <a
+                    href="{{ url_for('admin_users') }}"
+                    class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                  >
+                    User Management
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -97,15 +108,44 @@
         );
         const authenticatedLinks =
           document.getElementById("authenticatedLinks");
+        const adminLinks = document.getElementById("adminLinks");
 
         if (token) {
+          // Parse the JWT token to get the role
+          const tokenData = parseJwt(token);
+
           authenticatedMenu.style.display = "block";
           unauthenticatedMenu.style.display = "none";
           authenticatedLinks.style.display = "block";
+
+          // Show admin links only for admin role
+          if (tokenData && tokenData.role === "admin") {
+            adminLinks.style.display = "block";
+          } else {
+            adminLinks.style.display = "none";
+          }
         } else {
           authenticatedMenu.style.display = "none";
           unauthenticatedMenu.style.display = "block";
           authenticatedLinks.style.display = "none";
+          adminLinks.style.display = "none";
+        }
+      }
+
+      function parseJwt(token) {
+        try {
+          // Remove 'Bearer ' prefix if present
+          const actualToken = token.startsWith("Bearer ")
+            ? token.slice(7)
+            : token;
+          const base64Url = actualToken.split(".")[1];
+          const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+          const tokenData = JSON.parse(window.atob(base64));
+          console.log("Parsed token data:", tokenData); // Add this line
+          return tokenData;
+        } catch (e) {
+          console.error("Error parsing JWT:", e); // Add this line
+          return null;
         }
       }
 
@@ -118,7 +158,10 @@
 
           const token = localStorage.getItem("access_token");
           if (token) {
-            config.headers.Authorization = token;
+            // Make sure token includes 'Bearer'
+            config.headers.Authorization = token.startsWith("Bearer ")
+              ? token
+              : `Bearer ${token}`;
           }
 
           return originalFetch(resource, config);

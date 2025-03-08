@@ -30,6 +30,7 @@ def login():
         )
         response = jsonify({
             'message': 'Logged in successfully',
+            'access_token': access_token,
             'user': user.to_dict()
         })
         # Set JWT as cookie in the response
@@ -143,6 +144,73 @@ def signup():
             'user': user.to_dict()
         }), 201
         
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+    
+    
+    
+
+@auth_bp.route('/users', methods=['GET'])
+@jwt_required()
+def get_users():
+    """Get all users (admin only)"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get_or_404(current_user_id)
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+        
+    users = User.query.all()
+    return jsonify([user.to_dict() for user in users])
+
+@auth_bp.route('/users/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def update_user(user_id):
+    """Update user details (admin only)"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get_or_404(current_user_id)
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+        
+    user = User.query.get_or_404(user_id)
+    data = request.get_json()
+    
+    # Don't allow changing username
+    if data.get('email'):
+        user.email = data['email']
+    if data.get('role'):
+        user.role = data['role']
+    if 'is_active' in data:
+        user.is_active = data['is_active']
+        
+    try:
+        db.session.commit()
+        return jsonify({'message': 'User updated successfully'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    """Delete user (admin only)"""
+    current_user_id = get_jwt_identity()
+    current_user = User.query.get_or_404(current_user_id)
+    
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+        
+    if current_user_id == user_id:
+        return jsonify({'error': 'Cannot delete yourself'}), 400
+        
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify({'message': 'User deleted successfully'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500

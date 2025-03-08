@@ -1,0 +1,243 @@
+{% extends "base.html" %} {% block content %}
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-6 flex justify-between items-center">
+    <h2 class="text-2xl font-bold">User Management</h2>
+    <div class="flex gap-2">
+      <input
+        type="text"
+        id="searchUser"
+        placeholder="Search users..."
+        class="px-3 py-2 border rounded-md"
+      />
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <table class="min-w-full">
+      <thead class="bg-gray-50">
+        <tr>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Username
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Email
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Role
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Status
+          </th>
+          <th
+            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          >
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200" id="userTableBody">
+        <!-- Users will be populated here -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div
+    id="editModal"
+    class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full"
+  >
+    <div
+      class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+    >
+      <h3 class="text-lg font-medium mb-4">Edit User</h3>
+      <form id="editUserForm">
+        <input type="hidden" id="editUserId" />
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Email</label>
+          <input
+            type="email"
+            id="editEmail"
+            class="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Role</label>
+          <select id="editRole" class="w-full px-3 py-2 border rounded-md">
+            <option value="user">User</option>
+            <option value="analyst">Business Analyst</option>
+            <option value="engineer">Data Engineer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Status</label>
+          <select id="editStatus" class="w-full px-3 py-2 border rounded-md">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            type="button"
+            onclick="closeEditModal()"
+            class="px-4 py-2 bg-gray-200 rounded-md"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md"
+          >
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let users = [];
+
+  async function loadUsers() {
+    try {
+      const response = await fetch("/api/auth/users", {
+        headers: {
+          Authorization: localStorage.getItem("access_token"),
+        },
+      });
+      users = await response.json();
+      renderUsers(users);
+    } catch (error) {
+      console.error("Error loading users:", error);
+      alert("Failed to load users");
+    }
+  }
+
+  function renderUsers(usersToRender) {
+    const tbody = document.getElementById("userTableBody");
+    tbody.innerHTML = usersToRender
+      .map(
+        (user) => `
+    <tr>
+      <td class="px-6 py-4 whitespace-nowrap">${user.username}</td>
+      <td class="px-6 py-4 whitespace-nowrap">${user.email}</td>
+      <td class="px-6 py-4 whitespace-nowrap">${user.role}</td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+          ${
+            user.is_active
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800"
+          }">
+          ${user.is_active ? "Active" : "Inactive"}
+        </span>
+      </td>
+      <td class="px-6 py-4 whitespace-nowrap">
+        <button onclick="openEditModal(${
+          user.id
+        })" class="text-blue-600 hover:text-blue-800 mr-2">Edit</button>
+        <button onclick="deleteUser(${
+          user.id
+        })" class="text-red-600 hover:text-red-800">Delete</button>
+      </td>
+    </tr>
+  `
+      )
+      .join("");
+  }
+
+  function openEditModal(userId) {
+    const user = users.find((u) => u.id === userId);
+    if (user) {
+      document.getElementById("editUserId").value = user.id;
+      document.getElementById("editEmail").value = user.email;
+      document.getElementById("editRole").value = user.role;
+      document.getElementById("editStatus").value = user.is_active.toString();
+      document.getElementById("editModal").classList.remove("hidden");
+    }
+  }
+
+  function closeEditModal() {
+    document.getElementById("editModal").classList.add("hidden");
+  }
+
+  document
+    .getElementById("editUserForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userId = document.getElementById("editUserId").value;
+
+      try {
+        const response = await fetch(`/api/auth/users/${userId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("access_token"),
+          },
+          body: JSON.stringify({
+            email: document.getElementById("editEmail").value,
+            role: document.getElementById("editRole").value,
+            is_active: document.getElementById("editStatus").value === "true",
+          }),
+        });
+
+        if (response.ok) {
+          closeEditModal();
+          loadUsers();
+        } else {
+          const data = await response.json();
+          alert(data.error || "Failed to update user");
+        }
+      } catch (error) {
+        console.error("Error updating user:", error);
+        alert("Failed to update user");
+      }
+    });
+
+  async function deleteUser(userId) {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      const response = await fetch(`/api/auth/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: localStorage.getItem("access_token"),
+        },
+      });
+
+      if (response.ok) {
+        loadUsers();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      alert("Failed to delete user");
+    }
+  }
+
+  document.getElementById("searchUser").addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const filteredUsers = users.filter(
+      (user) =>
+        user.username.toLowerCase().includes(searchTerm) ||
+        user.email.toLowerCase().includes(searchTerm) ||
+        user.role.toLowerCase().includes(searchTerm)
+    );
+    renderUsers(filteredUsers);
+  });
+
+  // Load users when page loads
+  document.addEventListener("DOMContentLoaded", loadUsers);
+</script>
+{% endblock %}
