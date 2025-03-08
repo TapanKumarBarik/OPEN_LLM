@@ -74,16 +74,31 @@
       const data = await response.json();
 
       if (response.ok) {
-        // Store token in localStorage
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("access_token", `Bearer ${data.access_token}`);
-        window.location.href = "/dashboard";
+        // Success notification
+        Swal.fire({
+          icon: "success",
+          title: "Success!",
+          text: "Logged in successfully",
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          localStorage.setItem("access_token", `Bearer ${data.access_token}`);
+          window.location.href = "/dashboard";
+        });
       } else {
-        alert(data.error || "Login failed");
+        Swal.fire({
+          icon: "error",
+          title: "Login Failed",
+          text: data.error || "An error occurred during login",
+        });
       }
     } catch (error) {
       console.error("Login error:", error);
-      alert("An error occurred during login");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "An unexpected error occurred",
+      });
     }
   });
 </script>

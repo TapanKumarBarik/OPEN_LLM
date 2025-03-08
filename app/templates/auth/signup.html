@@ -101,14 +101,29 @@
         const data = await response.json();
 
         if (response.ok) {
-          alert("Your account has been created. Please log in to continue.");
-          window.location.href = "/";
+          Swal.fire({
+            icon: "success",
+            title: "Success!",
+            text: "Your account has been created. Please log in to continue.",
+            timer: 2000,
+            showConfirmButton: false,
+          }).then(() => {
+            window.location.href = "/";
+          });
         } else {
-          alert(data.error || "Signup failed");
+          Swal.fire({
+            icon: "error",
+            title: "Signup Failed",
+            text: data.error || "An error occurred during signup",
+          });
         }
       } catch (error) {
         console.error("Signup error:", error);
-        alert("An error occurred during signup");
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "An unexpected error occurred",
+        });
       }
     });
 </script>

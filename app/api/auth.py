@@ -21,8 +21,9 @@ def login():
         return jsonify({'error': 'Missing username or password'}), 400
         
     user = User.query.filter_by(username=username).first()
-    if user and check_password_hash(user.password_hash, password):
-        # Create access token with role in additional claims
+    
+    # Check if user exists, is active, and password matches
+    if user and user.is_active and check_password_hash(user.password_hash, password):
         access_token = create_access_token(
             identity=user.id,
             additional_claims={'role': user.role},
@@ -33,12 +34,15 @@ def login():
             'access_token': access_token,
             'user': user.to_dict()
         })
-        # Set JWT as cookie in the response
         set_access_cookies(response, access_token)
         return response
     
+    # Different error messages for different scenarios
+    if not user:
+        return jsonify({'error': 'Invalid username or password'}), 401
+    if not user.is_active:
+        return jsonify({'error': 'Your account is inactive. Please contact admin'}), 401
     return jsonify({'error': 'Invalid username or password'}), 401
-
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
