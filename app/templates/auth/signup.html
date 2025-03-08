@@ -101,9 +101,8 @@
         const data = await response.json();
 
         if (response.ok) {
-          // Store token and redirect
-          localStorage.setItem("access_token", `Bearer ${data.access_token}`);
-          window.location.href = "/dashboard";
+          alert("Your account has been created. Please log in to continue.");
+          window.location.href = "/";
         } else {
           alert(data.error || "Signup failed");
         }
@@ -113,4 +112,5 @@
       }
     });
 </script>
+
 {% endblock %}
