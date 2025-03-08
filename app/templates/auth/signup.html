@@ -1,0 +1,116 @@
+{% extends "base.html" %} {% block content %}
+<div
+  class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
+>
+  <div class="max-w-md w-full space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        Create your account
+      </h2>
+    </div>
+    <form class="mt-8 space-y-6" id="signupForm">
+      <div class="rounded-md shadow-sm -space-y-px">
+        <div>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            placeholder="Username"
+          />
+        </div>
+        <div>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            placeholder="Email address"
+          />
+        </div>
+        <div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            placeholder="Password"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700"
+          >Select Role</label
+        >
+        <select
+          id="role"
+          name="role"
+          class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+        >
+          <option value="user">User</option>
+          <option value="analyst">Business Analyst</option>
+          <option value="engineer">Data Engineer</option>
+        </select>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Sign up
+        </button>
+      </div>
+
+      <div class="text-sm text-center">
+        <a
+          href="{{ url_for('login') }}"
+          class="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Already have an account? Sign in
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document
+    .getElementById("signupForm")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      try {
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+            role: document.getElementById("role").value,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Store token and redirect
+          localStorage.setItem("access_token", `Bearer ${data.access_token}`);
+          window.location.href = "/dashboard";
+        } else {
+          alert(data.error || "Signup failed");
+        }
+      } catch (error) {
+        console.error("Signup error:", error);
+        alert("An error occurred during signup");
+      }
+    });
+</script>
+{% endblock %}

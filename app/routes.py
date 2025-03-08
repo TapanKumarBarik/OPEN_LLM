@@ -20,9 +20,15 @@ def init_routes(app):
                 return redirect(url_for('login'))
                 
             user = User.query.get_or_404(current_user_id)
+            
+            # Add role-based access check
+            if user.role not in ['admin', 'analyst', 'engineer', 'user']:
+                return jsonify({'error': 'Unauthorized access'}), 403
+                
             return render_template('dashboard/main.html', user=user)
         except Exception as e:
             return redirect(url_for('login'))
+    
 
     @app.route('/login')
     def login():
@@ -32,7 +38,9 @@ def init_routes(app):
             return redirect(url_for('dashboard'))
         return render_template('auth/login.html')
 
-
+    @app.route('/signup')
+    def signup():
+        return render_template('auth/signup.html')
 
     @app.route('/profile')
     @jwt_required()

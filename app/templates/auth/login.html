@@ -35,6 +35,14 @@
         </div>
       </div>
 
+      <div class="text-sm text-center mt-4">
+        <a
+          href="{{ url_for('signup') }}"
+          class="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Don't have an account? Sign up
+        </a>
+      </div>
       <div>
         <button
           type="submit"
@@ -70,21 +78,6 @@
         localStorage.setItem("access_token", data.access_token);
         localStorage.setItem("access_token", `Bearer ${data.access_token}`);
         window.location.href = "/dashboard";
-        // Add token to future requests
-        //window.fetch = new Proxy(window.fetch, {
-        //apply(fetch, that, args) {
-        //  const [resource, config] = args;
-        //  const token = localStorage.getItem("access_token");
-        //if (token) {
-        //config = config || {};
-        // config.headers = config.headers || {};
-        // config.headers.Authorization = `Bearer ${token}`;
-        //}
-        // return fetch.apply(that, [resource, config]);
-        //},
-        // });
-        // Redirect to dashboard
-        //window.location.href = "/dashboard";
       } else {
         alert(data.error || "Login failed");
       }

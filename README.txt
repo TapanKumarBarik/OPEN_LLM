@@ -115,3 +115,12 @@
 flask db init
 flask db migrate -m "Initial migration"
 flask db upgrade
+
+
+
+admin
+admin@123
+
+
+usertapan
+usertapan@gmail.com

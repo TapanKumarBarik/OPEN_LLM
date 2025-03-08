@@ -1,13 +1,15 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt_identity, set_access_cookies
+    create_access_token, jwt_required, get_jwt_identity, set_access_cookies,unset_jwt_cookies
 )
 from werkzeug.security import check_password_hash
+from werkzeug.security import generate_password_hash
 from datetime import timedelta
 from app.models.user import User
 from app import db
 
 auth_bp = Blueprint('auth', __name__)
+
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
@@ -20,34 +22,28 @@ def login():
         
     user = User.query.filter_by(username=username).first()
     if user and check_password_hash(user.password_hash, password):
+        # Create access token with role in additional claims
         access_token = create_access_token(
             identity=user.id,
             additional_claims={'role': user.role},
             expires_delta=timedelta(hours=1)
         )
         response = jsonify({
-            'access_token': access_token,
+            'message': 'Logged in successfully',
             'user': user.to_dict()
         })
-        # Set the JWT in a cookie so it is sent automatically with requests
+        # Set JWT as cookie in the response
         set_access_cookies(response, access_token)
-        return response, 200
+        return response
     
     return jsonify({'error': 'Invalid username or password'}), 401
-        
-    user = User.query.filter_by(username=username).first()
-    if user and check_password_hash(user.password_hash, password):
-        access_token = create_access_token(
-            identity=user.id,
-            additional_claims={'role': user.role},
-            expires_delta=timedelta(hours=1)
-        )
-        return jsonify({
-            'access_token': access_token,
-            'user': user.to_dict()
-        })
-    
-    return jsonify({'error': 'Invalid username or password'}), 401
+
+
+@auth_bp.route('/logout', methods=['POST'])
+def logout():
+    response = jsonify({'message': 'Logout successful'})
+    unset_jwt_cookies(response)
+    return response
 
 @auth_bp.route('/profile', methods=['GET'])
 @jwt_required()
@@ -56,3 +52,50 @@ def profile():
     user_id = get_jwt_identity()
     user = User.query.get_or_404(user_id)
     return jsonify(user.to_dict())
+
+
+
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
+    
+    # Validate required fields
+    required_fields = ['username', 'email', 'password', 'role']
+    for field in required_fields:
+        if not data.get(field):
+            return jsonify({'error': f'Missing {field}'}), 400
+    
+    # Check if username or email already exists
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username already exists'}), 400
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({'error': 'Email already exists'}), 400
+    
+    # Validate role
+    allowed_roles = ['user', 'analyst', 'engineer']
+    if data['role'] not in allowed_roles:
+        return jsonify({'error': 'Invalid role'}), 400
+    
+    try:
+        # Create new user
+        user = User(
+            username=data['username'],
+            email=data['email'],
+            password_hash=generate_password_hash(data['password']),
+            role=data['role']
+        )
+        db.session.add(user)
+        db.session.commit()
+        
+        # Create access token
+        access_token = create_access_token(identity=user.id)
+        
+        return jsonify({
+            'message': 'User created successfully',
+            'access_token': access_token,
+            'user': user.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
