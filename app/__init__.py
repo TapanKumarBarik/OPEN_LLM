@@ -5,6 +5,11 @@ from flask_jwt_extended import JWTManager
 from flask_login import LoginManager
 from flask_migrate import Migrate
 
+from functools import wraps
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
+
+
+
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -14,8 +19,11 @@ migrate = Migrate()
 
 
 
-from functools import wraps
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
+
+
+
+
+
 
 def role_required(roles):
     def wrapper(fn):
@@ -33,6 +41,8 @@ def role_required(roles):
 def create_app(config_class):
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(config_class)
+
+
 
     # Set up JWT to use cookies (for development, cookie secure is disabled)
     app.config['JWT_TOKEN_LOCATION'] = ['cookies']

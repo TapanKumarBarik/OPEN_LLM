@@ -12,6 +12,7 @@ from azure.storage.blob import BlobServiceClient
 from flask_login import login_required, current_user
 import os
 from datetime import datetime
+from app.services.async_tasks.task_manager import BackgroundTaskManager, train_document_background
 
 from app.models.document import Document
 
@@ -222,24 +223,56 @@ def init_routes(app):
         
         return jsonify({'message': 'Document uploaded successfully'})
 
+        
+    @app.route('/api/documents/<int:doc_id>', methods=['DELETE'])
+    @jwt_required()
+    def delete_document(doc_id):
+        current_user_id = get_jwt_identity()
+        user = User.query.get_or_404(current_user_id)
+        document = Document.query.get_or_404(doc_id)
+        
+        # Check if user owns document or is admin
+        if document.user_id != current_user_id and user.role != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 403
+            
+        try:
+            # Delete from Azure Blob Storage
+            container_name = f"user-{document.user_id}"
+            blob_service_client = BlobServiceClient.from_connection_string(app.config['AZURE_STORAGE_CONNECTION_STRING'])
+            container_client = blob_service_client.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(document.blob_path)
+            blob_client.delete_blob()
+            
+            # Delete from database
+            db.session.delete(document)
+            db.session.commit()
+            
+            return jsonify({'message': 'Document deleted successfully'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+        
+        
     @app.route('/api/documents', methods=['GET'])
     @jwt_required()
     def get_documents():
         current_user_id = get_jwt_identity()
-        user = User.query.get_or_404(current_user_id)  # Get the user from database
+        user = User.query.get_or_404(current_user_id)
         page = request.args.get('page', 1, type=int)
         per_page = 10
         search = request.args.get('search', '')
         
-        query = Document.query
+        # Use join to get user information
+        query = Document.query.join(User)
         
-        # Check role using the user object from database
+        # Filter by user_id for non-admin users
         if user.role != 'admin':
-            query = query.filter_by(user_id=current_user_id)
-            
+            # Change this line to filter on Document model
+            query = query.filter(Document.user_id == current_user_id)
+        
         if search:
             query = query.filter(Document.filename.ilike(f'%{search}%'))
-            
+        
         pagination = query.order_by(Document.created_at.desc()).paginate(
             page=page, per_page=per_page
         )
@@ -250,9 +283,53 @@ def init_routes(app):
                 'filename': doc.filename,
                 'status': doc.status,
                 'created_at': doc.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'user_id': doc.user_id
+                'user_id': doc.user_id,
+                'username': doc.user.username,
+                'is_admin': user.role == 'admin'
             } for doc in pagination.items],
             'total': pagination.total,
             'pages': pagination.pages,
             'current_page': pagination.page
         })
+        
+            
+    @app.route('/api/documents/preview/<path:blob_path>')
+    @jwt_required()
+    def preview_document(blob_path):
+        try:
+            container_name = f"user-{current_user_id}"
+            blob_service_client = BlobServiceClient.from_connection_string(app.config['AZURE_STORAGE_CONNECTION_STRING'])
+            container_client = blob_service_client.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_path)
+            
+            blob_data = blob_client.download_blob()
+            return Response(
+                blob_data.readall(),
+                mimetype='application/pdf',
+                headers={"Content-Disposition": "inline"}
+            )
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/documents/<int:doc_id>/train', methods=['POST'])
+    @jwt_required()
+    def train_document(doc_id):
+        current_user_id = get_jwt_identity()
+        document = Document.query.get_or_404(doc_id)
+        
+        # Only document owner can train
+        if document.user_id != current_user_id:
+            return jsonify({'error': 'Unauthorized'}), 403
+            
+        try:
+            # Update status to training
+            document.status = 'training'
+            db.session.commit()
+            
+            # Start background task
+            BackgroundTaskManager.run_task(train_document_background, doc_id)
+            
+            return jsonify({'message': 'Document training initiated'})
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
