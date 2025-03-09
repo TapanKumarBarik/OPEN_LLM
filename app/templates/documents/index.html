@@ -131,9 +131,9 @@
             <td class="px-6 py-4">
               ${
                 doc.is_admin
-                  ? `<a href="/profile/${doc.user_id}" class="text-blue-600 hover:text-blue-800">
-                  ${doc.username} (ID: ${doc.user_id})
-                </a>`
+                  ? `<a href="/dashboard/user/${doc.user_id}" class="text-blue-600 hover:text-blue-800">
+                    ${doc.username} (ID: ${doc.user_id})
+                  </a>`
                   : doc.username
               }
             </td>

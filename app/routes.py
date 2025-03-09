@@ -364,3 +364,20 @@ def init_routes(app):
         except Exception as e:
             db.session.rollback()
             return jsonify({'error': str(e)}), 500
+        
+        
+    @app.route('/dashboard/user/<int:user_id>')
+    @jwt_required()
+    def view_user_profile(user_id):
+        """View user profile (admin only)"""
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get_or_404(current_user_id)
+        
+        # Check if admin
+        if current_user.role != 'admin':
+            return redirect(url_for('dashboard'))
+            
+        # Get user to view
+        user = User.query.get_or_404(user_id)
+        log_activity(current_user_id, 'view_user_profile', f'Viewed profile of user {user_id}')
+        return render_template('auth/profile.html', user=user)
