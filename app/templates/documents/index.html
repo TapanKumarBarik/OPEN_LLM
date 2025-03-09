@@ -3,26 +3,33 @@
   <div class="mb-8">
     <h1 class="text-2xl font-bold mb-4">Document Management</h1>
 
-    <!-- Upload Form -->
     <div class="bg-white rounded-lg shadow p-6 mb-6">
       <form id="uploadForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700"
-            >Upload Document</label
-          >
+        <div
+          id="dropZone"
+          class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors"
+        >
           <input
             type="file"
             id="documentFile"
-            class="mt-1 block w-full"
+            class="hidden"
             accept=".pdf,.doc,.docx,.txt"
+            multiple
           />
+          <label for="documentFile" class="cursor-pointer">
+            <div class="flex flex-col items-center">
+              <i
+                class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"
+              ></i>
+              <p class="text-gray-600">
+                Drag and drop files here or click to select files
+              </p>
+              <p class="text-sm text-gray-500 mt-2">
+                Supported formats: PDF, DOC, DOCX, TXT
+              </p>
+            </div>
+          </label>
         </div>
-        <button
-          type="submit"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Upload
-        </button>
       </form>
     </div>
 
@@ -395,83 +402,106 @@
     pagination.innerHTML = html;
   }
 
-  document.getElementById("uploadForm").onsubmit = async (e) => {
+  const dropZone = document.getElementById("dropZone");
+  const uploadForm = document.getElementById("uploadForm");
+  const fileInput = document.getElementById("documentFile");
+
+  // Prevent default drag behaviors
+  ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+  });
+
+  // Highlight drop zone when dragging over it
+  ["dragenter", "dragover"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, highlight, false);
+  });
+
+  ["dragleave", "drop"].forEach((eventName) => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+  });
+
+  function highlight(e) {
+    dropZone.classList.add("border-blue-500", "bg-blue-50");
+  }
+
+  function unhighlight(e) {
+    dropZone.classList.remove("border-blue-500", "bg-blue-50");
+  }
+
+  function preventDefaults(e) {
     e.preventDefault();
+    e.stopPropagation();
+  }
 
-    const formData = new FormData();
-    const fileInput = document.getElementById("documentFile");
-    const file = fileInput.files[0];
-    formData.append("file", file);
+  // Handle dropped files
+  dropZone.addEventListener("drop", handleDrop, false);
 
-    // Show progress container
+  function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleFiles(files);
+  }
+
+  function handleFiles(files) {
+    [...files].forEach(uploadFile);
+  }
+
+  async function uploadFile(file) {
+    // Show upload progress for each file
     const progressContainer = document.getElementById("uploadProgress");
     const progressCircle = document.querySelector(".progress-ring-circle");
     const progressText = document.querySelector(".progress-text");
     const statusText = document.querySelector(".upload-status");
     progressContainer.style.display = "flex";
 
-    // Calculate circle properties
-    const radius = progressCircle.r.baseVal.value;
-    const circumference = radius * 2 * Math.PI;
-    progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
-    progressCircle.style.strokeDashoffset = circumference;
+    const formData = new FormData();
+    formData.append("file", file);
 
     try {
       const response = await fetch("/api/documents", {
         method: "POST",
         body: formData,
-        onUploadProgress: (progressEvent) => {
-          const percentComplete = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          const offset =
-            circumference - (percentComplete / 100) * circumference;
-          progressCircle.style.strokeDashoffset = offset;
-          progressText.textContent = `${percentComplete}%`;
-          statusText.textContent = `Uploading... ${formatBytes(
-            progressEvent.loaded
-          )} of ${formatBytes(progressEvent.total)}`;
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        progressText.textContent = "100%";
-        statusText.textContent = "Upload complete!";
-        setTimeout(() => {
-          progressContainer.style.display = "none";
-          Swal.fire({
-            icon: "success",
-            title: "Upload Successful",
-            text: "Document has been uploaded successfully",
-            toast: true,
-            position: "top-end",
-            showConfirmButton: false,
-            timer: 5000,
-            timerProgressBar: true,
-          });
-        }, 1000);
-
+        Swal.fire({
+          icon: "success",
+          title: "Upload Successful",
+          text: `${file.name} has been uploaded successfully`,
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 3000,
+        });
         loadDocuments();
-        fileInput.value = "";
       } else {
         throw new Error(data.error || "Error uploading document");
       }
     } catch (error) {
-      progressContainer.style.display = "none";
       Swal.fire({
         icon: "error",
         title: "Upload Failed",
-        text: error.message || "Network error while uploading document",
+        text: `Failed to upload ${file.name}: ${error.message}`,
         toast: true,
         position: "top-end",
         showConfirmButton: false,
-        timer: 5000,
-        timerProgressBar: true,
+        timer: 3000,
       });
+    } finally {
+      progressContainer.style.display = "none";
     }
-  };
+  }
+
+  // Handle regular file input change
+  fileInput.addEventListener("change", function (e) {
+    handleFiles(this.files);
+  });
 
   // Helper function to format bytes
   function formatBytes(bytes) {
