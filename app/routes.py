@@ -15,6 +15,7 @@ from datetime import datetime
 from app.services.async_tasks.task_manager import BackgroundTaskManager, train_document_background
 
 from app.models.document import Document
+from flask import Response  # Add this import
 
 def init_routes(app):
     @app.route('/')
@@ -279,6 +280,7 @@ def init_routes(app):
         
         return jsonify({
             'documents': [{
+                'blob_path': doc.blob_path,
                 'id': doc.id,
                 'filename': doc.filename,
                 'status': doc.status,
@@ -297,6 +299,7 @@ def init_routes(app):
     @jwt_required()
     def preview_document(blob_path):
         try:
+            current_user_id = get_jwt_identity()
             container_name = f"user-{current_user_id}"
             blob_service_client = BlobServiceClient.from_connection_string(app.config['AZURE_STORAGE_CONNECTION_STRING'])
             container_client = blob_service_client.get_container_client(container_name)
@@ -310,6 +313,34 @@ def init_routes(app):
             )
         except Exception as e:
             return jsonify({'error': str(e)}), 500
+
+
+
+    @app.route('/api/documents/admin-preview/<int:user_id>/<path:blob_path>')
+    @jwt_required()
+    def admin_preview_document(user_id, blob_path):
+        try:
+            current_user_id = get_jwt_identity()
+            current_user = User.query.get_or_404(current_user_id)
+            
+            # Verify admin role
+            if current_user.role != 'admin':
+                return jsonify({'error': 'Unauthorized access'}), 403
+                
+            container_name = f"user-{user_id}"
+            blob_service_client = BlobServiceClient.from_connection_string(app.config['AZURE_STORAGE_CONNECTION_STRING'])
+            container_client = blob_service_client.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_path)
+            
+            blob_data = blob_client.download_blob()
+            return Response(
+                blob_data.readall(),
+                mimetype='application/pdf',
+                headers={"Content-Disposition": "inline"}
+            )
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
 
     @app.route('/api/documents/<int:doc_id>/train', methods=['POST'])
     @jwt_required()
