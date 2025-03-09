@@ -47,6 +47,8 @@ beautifulsoup4==4.12.2
 requests==2.31.0
 html2text==2020.1.16
 lxml==4.9.3
+pdfplumber
+pillow
 
 # Asynchronous Tasks
 celery==5.3.4

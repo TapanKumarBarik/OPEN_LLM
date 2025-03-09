@@ -8,6 +8,46 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
+      .processing-steps {
+        display: none;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        position: relative;
+      }
+
+      .processing-steps::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #e5e7eb;
+        z-index: 1;
+      }
+
+      .step {
+        position: relative;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+        z-index: 2;
+        color: #6b7280;
+      }
+
+      .step.completed {
+        background: #10b981;
+        color: white;
+        border-color: #059669;
+      }
+
+      .step.failed {
+        background: #ef4444;
+        color: white;
+        border-color: #dc2626;
+      }
+
       .file-icon {
         display: inline-flex;
         align-items: center;

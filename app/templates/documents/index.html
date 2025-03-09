@@ -62,7 +62,13 @@
         class="w-full px-4 py-2 border rounded"
       />
     </div>
-
+    <div class="processing-steps">
+      <div class="step" data-status="uploaded">File Upload</div>
+      <div class="step" data-status="processing">Text Extraction</div>
+      <div class="step" data-status="chunking">Text Chunking</div>
+      <div class="step" data-status="embedding">Embedding Generation</div>
+      <div class="step" data-status="processed">Complete</div>
+    </div>
     <!-- Documents List -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
@@ -112,6 +118,15 @@
 </div>
 
 <script>
+  const VALID_STATUSES = [
+    "uploaded", // Initial upload complete
+    "processing", // Parser extracting text
+    "chunking", // Breaking into smaller pieces
+    "embedding", // Generating embeddings
+    "processed", // Successfully completed
+    "failed", // Error occurred
+  ];
+
   let currentPage = 1;
   async function loadDocuments(page = 1, search = "") {
     const response = await fetch(
@@ -283,6 +298,38 @@
         title: "Error",
         text: error.message,
       });
+    }
+  }
+
+  function updateProcessingStatus(status) {
+    // Show processing steps when processing starts
+    const processingSteps = document.querySelector(".processing-steps");
+    processingSteps.style.display = "flex";
+
+    document.querySelectorAll(".step").forEach((step) => {
+      const stepStatus = step.dataset.status;
+      if (status === "failed") {
+        if (
+          VALID_STATUSES.indexOf(stepStatus) < VALID_STATUSES.indexOf(status)
+        ) {
+          step.classList.add("completed");
+        } else if (stepStatus === status) {
+          step.classList.add("failed");
+        }
+      } else {
+        if (
+          VALID_STATUSES.indexOf(stepStatus) <= VALID_STATUSES.indexOf(status)
+        ) {
+          step.classList.add("completed");
+        }
+      }
+    });
+
+    // Hide steps when processing is complete or failed
+    if (status === "trained" || status === "training_failed") {
+      setTimeout(() => {
+        processingSteps.style.display = "none";
+      }, 3000);
     }
   }
 
@@ -470,6 +517,8 @@
       const data = await response.json();
 
       if (response.ok) {
+        updateProcessingStatus("uploaded");
+        pollDocumentStatus(data.id);
         Swal.fire({
           icon: "success",
           title: "Upload Successful",
@@ -503,6 +552,24 @@
     handleFiles(this.files);
   });
 
+  async function pollDocumentStatus(docId) {
+    const interval = setInterval(async () => {
+      const response = await fetch(`/api/documents/${docId}/status`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+      const data = await response.json();
+
+      updateProcessingStatus(data.status);
+
+      if (["processed", "failed"].includes(data.status)) {
+        clearInterval(interval);
+        loadDocuments(currentPage);
+      }
+    }, 2000); // Poll every 2 seconds
+  }
+
   // Helper function to format bytes
   function formatBytes(bytes) {
     if (bytes === 0) return "0 Bytes";
@@ -520,6 +587,15 @@
     }, 300);
   };
 
+  function validateFileFormat(file) {
+    const allowedTypes = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
+    const extension = file.name
+      .toLowerCase()
+      .substring(file.name.lastIndexOf("."));
+    if (!allowedTypes.includes(extension)) {
+      throw new Error("Unsupported file format");
+    }
+  }
   // Initial load
   loadDocuments();
 </script>
