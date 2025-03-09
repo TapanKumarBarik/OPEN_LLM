@@ -24,7 +24,6 @@ migrate = Migrate()
 
 
 
-
 def role_required(roles):
     def wrapper(fn):
         @wraps(fn)
@@ -58,8 +57,12 @@ def create_app(config_class):
 
     from app.api.auth import auth_bp
     from app.api.admin import admin_bp
+    from app.api.chat import chat_bp
+    
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(chat_bp, url_prefix='/api/chat')
+    
     
     from app.routes import init_routes
     init_routes(app)

@@ -501,3 +501,18 @@ def init_routes(app):
             # Clean up temp file
             if temp_file and os.path.exists(temp_file.name):
                 os.unlink(temp_file.name)
+                
+                
+                
+    @app.route('/documents/chat')
+    @jwt_required()
+    def document_chat():
+        return render_template('documents/chat.html')
+
+    @app.route('/api/chat/model-info')
+    @jwt_required()
+    def get_model_info():
+        llm = get_llm_instance()
+        return jsonify({
+            'model_name': llm.get_model_name()
+        })

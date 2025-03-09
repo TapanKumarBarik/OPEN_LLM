@@ -1,6 +1,13 @@
 {% extends "base.html" %} {% block content %}
 <div class="container mx-auto px-4 py-8">
   <div class="mb-8">
+    <button
+      onclick="navigateToChat()"
+      class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center gap-2"
+    >
+      <i class="fas fa-comments"></i>
+      Chat with Documents
+    </button>
     <h1 class="text-2xl font-bold mb-4">Document Management</h1>
 
     <div class="bg-white rounded-lg shadow p-6 mb-6">
@@ -118,6 +125,9 @@
 </div>
 
 <script>
+  function navigateToChat() {
+    window.location.href = "/documents/chat";
+  }
   const VALID_STATUSES = [
     "uploaded", // Initial upload complete
     "processing", // Parser extracting text
