@@ -120,6 +120,7 @@
       tbody.innerHTML += `
           <tr>
             <td class="px-6 py-4">
+            <i class="mr-2 text-lg ${getFileIcon(doc.filename)}"></i>
              <a href="#" onclick="previewDocument('${doc.blob_path}', ${
         doc.user_id
       })" class="text-blue-600 hover:text-blue-800">
@@ -167,7 +168,6 @@
     }
     return null;
   }
-
   async function previewDocument(blobPath, userId = null) {
     // Show loading indicator
     Swal.fire({
@@ -193,22 +193,79 @@
       if (response.ok) {
         const blob = await response.blob();
         const contentType = response.headers.get("content-type");
-        const url = window.URL.createObjectURL(
-          new Blob([blob], { type: contentType })
-        );
+        const url = window.URL.createObjectURL(blob);
+        const fileExt = blobPath.split(".").pop().toLowerCase();
 
-        // Close loading indicator and show document
-        Swal.fire({
-          html: `<iframe 
-                    src="${url}" 
+        let previewHtml = "";
+
+        switch (fileExt) {
+          case "pdf":
+            previewHtml = `<iframe src="${url}#toolbar=0" width="100%" height="600px" style="border: none;"></iframe>`;
+            break;
+
+          case "doc":
+          case "docx":
+            // Use Google Docs Viewer as fallback
+            const encodedUrl = encodeURIComponent(
+              window.location.origin + previewUrl
+            );
+            previewHtml = `
+            <div class="p-4 bg-yellow-50 text-yellow-700 rounded mb-4">
+              Attempting to preview document using Google Docs Viewer...
+            </div>
+            <iframe src="https://docs.google.com/viewer?url=${encodedUrl}&embedded=true" 
                     width="100%" 
                     height="600px" 
-                    style="border: none;"
-                    type="${contentType}"
-                ></iframe>`,
+                    style="border: none;">
+            </iframe>
+            <div class="mt-4 text-center">
+              <a href="${url}" download class="bg-blue-500 text-white px-4 py-2 rounded">
+                Download Original Document
+              </a>
+            </div>
+          `;
+            break;
+
+          case "txt":
+          case "html":
+            const text = await blob.text();
+            previewHtml = `
+            <div class="bg-white p-4 rounded shadow overflow-auto" style="height: 600px">
+              <pre class="whitespace-pre-wrap font-mono text-sm">${text}</pre>
+            </div>
+          `;
+            break;
+
+          default:
+            previewHtml = `
+            <div class="text-center">
+              <p class="mb-4">Preview not available for this file type</p>
+              <a href="${url}" download class="bg-blue-500 text-white px-4 py-2 rounded">Download File</a>
+            </div>
+          `;
+        }
+
+        // Show preview
+        Swal.fire({
+          html: previewHtml,
           width: "80%",
           heightAuto: false,
           showCloseButton: true,
+          didOpen: () => {
+            // Ensure proper content-type is set for downloads
+            const downloadLinks = document.querySelectorAll("a[download]");
+            downloadLinks.forEach((link) => {
+              link.addEventListener("click", (e) => {
+                e.preventDefault();
+                const a = document.createElement("a");
+                a.href = link.href;
+                a.download = blobPath.split("/").pop();
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              });
+            });
+          },
         });
       } else {
         throw new Error("Failed to load document preview");
@@ -222,6 +279,26 @@
     }
   }
 
+  function getFileIcon(filename) {
+    const ext = filename.split(".").pop().toLowerCase();
+    switch (ext) {
+      case "pdf":
+        return "fas fa-file-pdf text-red-500";
+      case "doc":
+      case "docx":
+        return "fas fa-file-word text-blue-500";
+      case "xls":
+      case "xlsx":
+        return "fas fa-file-excel text-green-500";
+      case "ppt":
+      case "pptx":
+        return "fas fa-file-powerpoint text-orange-500";
+      case "csv":
+        return "fas fa-file-csv text-green-400";
+      default:
+        return "fas fa-file text-gray-500";
+    }
+  }
   // Helper function to check if user is admin
   function checkIfAdmin() {
     const token = localStorage.getItem("access_token");
