@@ -7,7 +7,7 @@ from app.services.ai.llm_factory import get_llm_instance
 from app.services.ai.llm_factory import get_llm_instance
 
 from app import db
-
+import json
 
 
 chat_bp = Blueprint('chat', __name__)
@@ -27,14 +27,8 @@ def get_model_info():
 @chat_bp.route('/docs', methods=['POST'])
 @jwt_required()
 def chat_with_docs():
-    
-    print("#############################################")
-    print("chat_with_docs")
-    print("#############################################")
-    
     current_user_id = get_jwt_identity()
     
-    # Get query from request
     data = request.get_json()
     query = data.get('query')
     
@@ -43,7 +37,9 @@ def chat_with_docs():
         
     # Get all user's documents by default
     docs = Document.query.filter_by(user_id=current_user_id).all()
-    doc_ids = [doc.id for doc in docs]
+    # Convert list to dictionary with document ID as key
+    docs_dict = {doc.id: doc for doc in docs}
+    doc_ids = list(docs_dict.keys())
     
     if not doc_ids:
         return jsonify({'error': 'No documents found'}), 404
@@ -52,17 +48,19 @@ def chat_with_docs():
     vector_store = VectorStore()
     chunks = vector_store.similarity_search(
         query=query,
-        filters={'document_id': {'$in': doc_ids}},
+        user_id=current_user_id,
+        filters={'document_id': doc_ids},
         k=10
     )
     
     # Prepare context and citations
-    context = [chunk.content for chunk in chunks]
+    context = [chunk['content'] for chunk in chunks]
+
     citations = [{
-        'content': chunk.content,
+        'content': chunk['content'],
         'metadata': {
-            **chunk.metadata,
-            'filename': docs[chunk.metadata['document_id']].filename
+            **json.loads(chunk['chunk_metadata']),
+            'filename': docs_dict[chunk['document_id']].filename  # Use dictionary lookup
         }
     } for chunk in chunks]
     
@@ -72,8 +70,8 @@ def chat_with_docs():
     # Generate response
     response = llm.generate_response(
         query=query,
-        context=context,
-        citations=citations
+        context=context
+        
     )
     
     # Save chat history

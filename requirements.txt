@@ -87,3 +87,4 @@ validators==0.22.0
 
 #Azure
 azure-storage-blob
+azure-search-documents==11.4.0

@@ -28,5 +28,9 @@ class DevelopmentConfig(Config):
     
     AZURE_STORAGE_CONNECTION_STRING = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     
+    AZURE_SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
+    AZURE_SEARCH_KEY = os.getenv("AZURE_SEARCH_KEY")
+    AZURE_SEARCH_INDEX_NAME = os.getenv("AZURE_SEARCH_INDEX_NAME", "document-chunks")
+
 
 

@@ -10,15 +10,31 @@ class AzureOpenAILLM(BaseLLM):
             azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
         )
         
-    def generate_response(self, query, context, citations=None):
+        
+
+    def _build_prompt(self, query: str, context: list) -> str:
+        # Create a combined context string from all chunks
+        context_str = "\n\n".join(context)
+            
+        # Build a detailed prompt with instructions
+        prompt = f"""Use the following pieces of content to answer the question below. 
+        Content:
+        {context_str}
+        
+        Question: {query}
+        
+        Answer:"""
+            
+        return prompt        
+
+    def generate_response(self, query, context):
         prompt = self._build_prompt(query, context)
         response = self.client.chat.completions.create(
             model=os.getenv("AZURE_OPENAI_MODEL"),
             messages=[{"role": "user", "content": prompt}]
         )
         return {
-            "answer": response.choices[0].message.content,
-            "citations": citations
+            "answer": response.choices[0].message.content
         }
 
     def get_model_name(self):

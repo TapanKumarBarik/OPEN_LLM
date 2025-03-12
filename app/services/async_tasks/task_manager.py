@@ -8,6 +8,8 @@ from app.services.embedding.embedding_service import EmbeddingService
 from azure.storage.blob import BlobServiceClient
 import os
 import tempfile
+from ..search.azure_search_service import AzureSearchService
+
 
 
 # Singleton pattern for embedding service
@@ -100,64 +102,56 @@ def train_document_background(doc_id: int):
 
             if not chunks:
                 raise Exception("No text content extracted from document")
-                
-            # Update status to chunking
+            
             document.status = 'chunking'
             db.session.commit()
-            print(f"Document {doc_id} status updated to 'chunking'.")
-
-            # 3. Create embeddings using singleton instance
-            embedding_service = EmbeddingServiceSingleton.get_instance()
-            texts = [chunk.content for chunk in chunks]
-
-            print(f"Generating embeddings for {len(texts)} chunks...")
-
-            # Update status to embedding
-            document.status = 'embedding'
-            db.session.commit()
-            print(f"Document {doc_id} status updated to 'embedding'.")
-
-            embeddings = embedding_service.create_embeddings(texts)
-            print(f"Embeddings created for {len(embeddings)} chunks.")
-
-            # 4. Store chunks with embeddings
-            for idx, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-                print(f"Storing chunk {idx+1}/{len(chunks)} for document {doc_id}")
+            
+            # Prepare chunks for Azure Search
+            chunk_docs = []
+            for idx, chunk in enumerate(chunks):
+                # Store basic chunk info in PostgreSQL without embedding
                 doc_chunk = DocumentChunk(
                     document_id=doc_id,
                     user_id=document.user_id,
                     content=chunk.content,
-                    chunk_metadata=chunk.metadata  # Note: using chunk_metadata instead of metadata
+                    chunk_metadata=chunk.metadata
                 )
-                doc_chunk.set_embedding(embedding)
                 db.session.add(doc_chunk)
-
-            db.session.commit()
-            print(f"All chunks for document {doc_id} stored successfully.")
-
-            # 5. Update document status
-            document.status = 'trained'
-            db.session.commit()
-            print(f"Document {doc_id} successfully trained.")
-            return True
+                
+                # Prepare for Azure Search
+                chunk_doc = {
+                    'id': f"{doc_id}_{idx}",
+                    'document_id': doc_id,
+                    'user_id': document.user_id,
+                    'content': chunk.content,
+                    'chunk_metadata': chunk.metadata
+                }
+                chunk_docs.append(chunk_doc)
             
+            db.session.commit()
+            
+            document.status = 'embedding'
+            db.session.commit()
+            
+            # Index in Azure Search
+            search_service = AzureSearchService.get_instance()
+            if search_service.index_documents(chunk_docs):
+                document.status = 'trained'
+                db.session.commit()
+                return True
+            else:
+                document.status = 'training_failed'
+                document.error_message = "Failed to index documents in Azure Search"
+                db.session.commit()
+                return False
+                
         except Exception as e:
-            print(f"Training failed for document {doc_id} during parsing/embedding: {str(e)}")  # Add logging
-            document = Document.query.get(doc_id)
+            print(f"Training failed for document {doc_id}: {str(e)}")
             if document:
                 document.status = 'training_failed'
                 document.error_message = str(e)
                 db.session.commit()
             return False
-        
-    except Exception as e:
-        print(f"Training failed for document {doc_id} due to unexpected error: {str(e)}")  # Add logging
-        document = Document.query.get(doc_id)
-        if document:
-            document.status = 'training_failed'
-            document.error_message = str(e)
-            db.session.commit()
-        return False
     finally:
         # Clean up temp file
         if temp_file and os.path.exists(temp_file.name):
